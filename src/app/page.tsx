@@ -8,9 +8,10 @@ import { SubmitHandler, useForm } from "react-hook-form";
 import TextAreaAutosize from "react-textarea-autosize";
 import { ArrowDownIcon, PlusIcon } from "lucide-react";
 import { z } from "zod";
-import { useActions, useUIState } from "ai/rsc";
+import { useActions, useUIState, useAIState } from "ai/rsc";
 import { AI } from "@/app/actions";
 import { UserMessage } from "@/components/llm/message";
+import { useEffect, useRef } from "react";
 
 
 const chatSchema = z.object({
@@ -50,7 +51,7 @@ export default function Home() {
   };
   return (
     <main>
-      <div className="pb[200px] pt-4 md:pt-10">
+      <div className="pb-[200px] pt-4 md:pt-10">
         <ChatList messages={messages}></ChatList>
         <ChatScrollAnchor></ChatScrollAnchor>
       </div>
@@ -58,7 +59,7 @@ export default function Home() {
         <div className="mx-auto sm:mx-w-2xl sm-px-4">
           <div className="px-3 flex justify-center flex-col py-2 space-y-4 border-t shadow-lg bg-background sm:rounded-t-xl sm:border md:py-4 bg-white">
             <form ref={formRef} action="" onSubmit={form.handleSubmit(onSubmit)}>
-              <div className="relative flex flex-col w-full overflow-hidden max-h-60 grow bg-background sm:rounded-md sm:border">
+              <div className="relative flex w-full overflow-hidden max-h-60 grow bg-background sm:rounded-md sm:border items-center">
                 <TextAreaAutosize
                   tabIndex={0}
                   onKeyDown={onKeyDown}
@@ -71,7 +72,7 @@ export default function Home() {
                   rows={1}
                   {...form.register("message")}
                 ></TextAreaAutosize>
-                <div className="absolute right-0 top-4 sm:right-4">
+                <div className="absolute right-0 sm:right-4">
                   <Button
                     type="submit"
                     size="icon"

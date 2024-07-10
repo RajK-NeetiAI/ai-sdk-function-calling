@@ -1,6 +1,11 @@
+import { Images, RelatedSearch, TopStory } from "@/lib/tools/search-internet";
 import { cn } from "@/lib/utils";
 import { SparkleIcon, UserIcon } from "lucide-react";
 import { ReactNode } from "react";
+import { ImageCarousel } from "@/components/llm/image-carousel";
+import Markdown from "react-markdown"
+import { TopStoryCarousel } from "@/components/llm/top-story-card";
+import { RelatedQueryButton } from "./realted-query";
 
 export function UserMessage({ children }: { children: ReactNode }) {
     return (
@@ -16,9 +21,19 @@ export function UserMessage({ children }: { children: ReactNode }) {
 };
 
 export function BotMessage({
-    children, className
+    query,
+    className,
+    summary,
+    images,
+    relatedSearch,
+    topStories
 }: {
-    children: ReactNode, className?: string
+    query?: string
+    className?: string,
+    summary?: string,
+    images?: Images[],
+    relatedSearch?: RelatedSearch[]
+    topStories?: TopStory[]
 }) {
     return (
         <div className={cn(
@@ -28,21 +43,35 @@ export function BotMessage({
             <div className="flex h-8 w-8 shrink-0 select-none items-center justify-center rounded-md border shadow-sm bg-background">
                 <SparkleIcon></SparkleIcon>
             </div>
-            <div className="ml-4 flex-1 space-y-2 px-1">
-                {children}
+            <div className="flex flex-col items-center justify-center">
+                {
+                    images && <ImageCarousel images={images}></ImageCarousel>
+                }
+                {
+                    topStories && <TopStoryCarousel topStories={topStories}></TopStoryCarousel>
+                }
+                {
+                    summary && <div className="ml-4 flex-1 space-y-2 px-1 mt-12">
+                        <Markdown>{summary}</Markdown>
+                    </div>
+                }
+                {
+                    relatedSearch && <RelatedQueryButton relatedSearch={relatedSearch}></RelatedQueryButton>
+                }
             </div>
         </div>
     );
 };
 
 export function BotCard({
-    children, showAvtar = true
+    children, showAvtar = true, className
 }: {
-    children: ReactNode, showAvtar?: boolean
+    children: ReactNode, showAvtar?: boolean, className?: string
 }) {
     return (
         <div className={cn(
-            "group relative flex items-start md:ml-12"
+            "group relative flex items-start md:ml-12",
+            className
         )}>
             <div className={cn(
                 "flex h-8 w-8 shrink-0 select-none items-center justify-center rounded-md border shadow-sm bg-background",

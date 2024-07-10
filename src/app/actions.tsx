@@ -1,16 +1,14 @@
 "use server";
 
-import { createAI, createStreamableUI, createStreamableValue, getMutableAIState, streamUI } from "ai/rsc";
-import { ReactNode, Suspense } from "react";
+import { createAI, getMutableAIState, streamUI } from "ai/rsc";
+import { ReactNode } from "react";
 import type { CoreMessage, ToolInvocation } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
 import { env } from "@/env.mjs";
 import { BotMessage, BotCard } from "@/components/llm/message";
 import { Loader2 } from "lucide-react";
 import { z } from "zod";
-import { sleep } from "@/lib/utils";
 import { generateSummary, processSerperResponse, searchGoogleSerper } from "@/lib/tools/search-internet";
-import { ImageCarousel } from "@/components/llm/image-carousel";
 
 // System message
 const systemMessage = `You are a helpful assistant and you can help users get the information they are 
@@ -36,8 +34,6 @@ export const sendMessage = async (message: string): Promise<{
     display: ReactNode
 }> => {
     const aiState = getMutableAIState<typeof AI>();
-    const uiState = createStreamableUI();
-    const streamText = createStreamableValue<string>();
     aiState.update([
         ...aiState.get(),
         {
@@ -52,34 +48,39 @@ export const sendMessage = async (message: string): Promise<{
             ...aiState.get()
         ] as CoreMessage[],
         initial: (
-            <BotMessage className="items-center flex shrink-0 select-none justify-center">
+            <BotCard className="items-center flex shrink-0 select-none justify-center">
                 <Loader2 className="w-5 animate-spin stroke-zinc-900"></Loader2>
-            </BotMessage>
+            </BotCard>
         ),
         text: ({ content, done }) => {
             if (done) {
                 aiState.done([...aiState.get(), { role: 'assistant', content: content }]);
             }
-            return <BotMessage>
-                {content}
-            </BotMessage>;
+            return <BotMessage
+                summary={content}
+            ></BotMessage>;
         },
         temperature: 0.0,
         tools: {
             get_internet_serach: {
-                description: "Get the current information from the internet, use this to search internet.",
+                description: "Get the current information from the internet about the, use this to search internet.",
                 parameters: z.object({
                     query: z.string().describe("stand alone query to search the internet.")
                 }),
                 generate: async function* ({ query }: { query: string }) {
+                    console.log(`Generated query: ${query}.`);
+                    yield <BotCard>
+                        <Loader2 className="w-5 animate-spin stroke-zinc-900"></Loader2>
+                    </BotCard>
                     const serperResponse = await searchGoogleSerper(query);
-                    console.log(JSON.stringify(serperResponse, null, 2));
                     const processedResponse = await processSerperResponse(serperResponse);
-                    uiState.append(
-                        <BotMessage>{JSON.stringify(processedResponse, null, 2)}</BotMessage>
-                    );
+                    yield <BotMessage
+                        query={query}
+                        images={processedResponse.images}
+                        topStories={processedResponse.topStories}
+                        relatedSearch={processedResponse.relatedSearches}
+                    ></BotMessage>
                     const summary = await generateSummary(serperResponse, query);
-                    console.log(summary);
                     aiState.done([
                         ...aiState.get(),
                         {
@@ -88,9 +89,13 @@ export const sendMessage = async (message: string): Promise<{
                             content: summary
                         }
                     ]);
-                    uiState.done();
-                    return <BotMessage>{`${JSON.stringify(processedResponse, null, 2)}
-                    ${summary}`}</BotMessage>;
+                    return <BotMessage
+                        query={query}
+                        images={processedResponse.images}
+                        topStories={processedResponse.topStories}
+                        summary={summary}
+                        relatedSearch={processedResponse.relatedSearches}
+                    ></BotMessage>;
                 }
             }
         }
@@ -107,14 +112,14 @@ export type AIState = Array<{
     name?: "get_internet_serach"
     role: "user" | "assistant" | "system"
     content: string
-}>
+}>;
 
 export type UIState = Array<{
     id: number
-    role: "user" | "assistant"
+    role: "user" | "assistant" | "tool_call"
     display: ReactNode
     toolInvocations?: ToolInvocation[];
-}>
+}>;
 
 export const AI = createAI({
     initialAIState: [] as AIState,
